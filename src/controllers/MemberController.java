@@ -1,9 +1,9 @@
 package controllers;
 
-import models.Member;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import models.Member;
 
 public class MemberController {
 
@@ -18,20 +18,33 @@ public class MemberController {
     // CREATE MEMBER
     // ============================================================
     public boolean createMember(Member m) {
-        String sql = "INSERT INTO Members (studentId, firstName, lastName, email, department, status) " +
-                     "VALUES (?, ?, ?, ?, ?, ?)";
+        String idSql = "SELECT MAX(memberId) AS maxId FROM Members";
+        String insertSql = "INSERT INTO Members (memberId, studentId, firstName, lastName, email, department, status) " +
+                           "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DriverManager.getConnection(dbUrl);
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement idStmt = conn.prepareStatement(idSql);
+             ResultSet rs = idStmt.executeQuery()) {
 
-            ps.setString(1, m.getStudentId());
-            ps.setString(2, m.getFirstName());
-            ps.setString(3, m.getLastName());
-            ps.setString(4, m.getEmail());
-            ps.setString(5, m.getDepartment());
-            ps.setString(6, m.getStatus());
+            int nextId = 1;
+            if (rs.next()) {
+                int maxId = rs.getInt("maxId");
+                if (!rs.wasNull()) {
+                    nextId = maxId + 1;
+                }
+            }
 
-            return ps.executeUpdate() == 1;
+            try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+                ps.setInt(1, nextId);
+                ps.setString(2, m.getStudentId());
+                ps.setString(3, m.getFirstName());
+                ps.setString(4, m.getLastName());
+                ps.setString(5, m.getEmail());
+                ps.setString(6, m.getDepartment());
+                ps.setString(7, m.getStatus());
+
+                return ps.executeUpdate() == 1;
+            }
 
         } catch (SQLException e) {
             System.out.println("Error creating member:");
