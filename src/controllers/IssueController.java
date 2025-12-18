@@ -1,9 +1,8 @@
 package controllers;
 
-import models.IssueTransaction;
-
 import java.sql.*;
 import java.util.Date;
+import models.IssueTransaction;
 
 public class IssueController {
 
@@ -17,10 +16,10 @@ public class IssueController {
     // ISSUE A BOOK COPY TO A MEMBER
     // =========================================================================
     public boolean issueBook(int memberId, int copyId, int bookId) {
-
+        String idSql = "SELECT MAX(issueId) AS maxId FROM IssueTransactions";
         String insertIssueSQL =
-                "INSERT INTO IssueTransactions (memberId, copyId, issueDate, dueDate, status) " +
-                "VALUES (?, ?, ?, ?, ?)";
+            "INSERT INTO IssueTransactions (issueId, memberId, copyId, issueDate, dueDate, status) " +
+            "VALUES (?, ?, ?, ?, ?, ?)";
 
         String updateCopySQL =
                 "UPDATE BookCopies SET status='ISSUED' WHERE copyId=?";
@@ -28,9 +27,19 @@ public class IssueController {
         String updateBookQtySQL =
                 "UPDATE Books SET availableQuantity = availableQuantity - 1 WHERE bookId=?";
 
-        try (Connection conn = DriverManager.getConnection(dbUrl)) {
+        try (Connection conn = DriverManager.getConnection(dbUrl);
+             PreparedStatement idStmt = conn.prepareStatement(idSql);
+             ResultSet rs = idStmt.executeQuery()) {
 
             conn.setAutoCommit(false); // Transaction
+
+            int nextId = 1;
+            if (rs.next()) {
+                int maxId = rs.getInt("maxId");
+                if (!rs.wasNull()) {
+                    nextId = maxId + 1;
+                }
+            }
 
             // 1) Insert Issue Record
             try (PreparedStatement ps = conn.prepareStatement(insertIssueSQL)) {
@@ -41,11 +50,12 @@ public class IssueController {
                 java.sql.Date sqlDue =
                         new java.sql.Date(sqlIssue.toLocalDate().plusDays(15).toEpochDay() * 86400000);
 
-                ps.setInt(1, memberId);
-                ps.setInt(2, copyId);
-                ps.setDate(3, sqlIssue);
-                ps.setDate(4, sqlDue);
-                ps.setString(5, "ISSUED");
+                ps.setInt(1, nextId);
+                ps.setInt(2, memberId);
+                ps.setInt(3, copyId);
+                ps.setDate(4, sqlIssue);
+                ps.setDate(5, sqlDue);
+                ps.setString(6, "ISSUED");
 
                 ps.executeUpdate();
             }

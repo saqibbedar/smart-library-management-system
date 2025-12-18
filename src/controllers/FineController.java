@@ -1,10 +1,10 @@
 package controllers;
 
-import models.Fine;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import models.Fine;
 
 public class FineController {
 
@@ -67,20 +67,33 @@ public class FineController {
     // INSERT FINE INTO DATABASE
     // =========================================================================
     public boolean createFine(Fine f) {
-        String sql = "INSERT INTO Fines (issueId, memberId, amount, dailyRate, overdueDays, status) " +
-                     "VALUES (?, ?, ?, ?, ?, ?)";
+        String idSql = "SELECT MAX(fineId) AS maxId FROM Fines";
+        String insertSql = "INSERT INTO Fines (fineId, issueId, memberId, amount, dailyRate, overdueDays, status) " +
+                           "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DriverManager.getConnection(dbUrl);
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement idStmt = conn.prepareStatement(idSql);
+             ResultSet rs = idStmt.executeQuery()) {
 
-            ps.setInt(1, f.getIssueId());
-            ps.setInt(2, f.getMemberId());
-            ps.setDouble(3, f.getAmount());
-            ps.setDouble(4, f.getDailyRate());
-            ps.setInt(5, f.getOverdueDays());
-            ps.setString(6, f.getStatus());
+            int nextId = 1;
+            if (rs.next()) {
+                int maxId = rs.getInt("maxId");
+                if (!rs.wasNull()) {
+                    nextId = maxId + 1;
+                }
+            }
 
-            return ps.executeUpdate() == 1;
+            try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+                ps.setInt(1, nextId);
+                ps.setInt(2, f.getIssueId());
+                ps.setInt(3, f.getMemberId());
+                ps.setDouble(4, f.getAmount());
+                ps.setDouble(5, f.getDailyRate());
+                ps.setInt(6, f.getOverdueDays());
+                ps.setString(7, f.getStatus());
+
+                return ps.executeUpdate() == 1;
+            }
 
         } catch (SQLException e) {
             System.out.println("Error creating fine:");

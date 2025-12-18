@@ -1,14 +1,15 @@
 package UI;
 
+import controllers.AuditLogController;
 import controllers.FineController;
 import controllers.MemberController;
-import models.Fine;
-import models.Member;
-
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import models.Fine;
+import models.Member;
+import models.Users;
 
 public class FinesUI extends JFrame {
 
@@ -18,19 +19,27 @@ public class FinesUI extends JFrame {
 
     private final MemberController memberController;
     private final FineController fineController;
+    private final AuditLogController auditLogController;
+    private final Users loggedInUser;
 
     private int selectedFineId = -1;
 
-    public FinesUI(String dbPath) {
+    public FinesUI(Users user, String dbPath) {
+        this.loggedInUser = user;
         memberController = new MemberController(dbPath);
         fineController = new FineController(dbPath);
+        auditLogController = new AuditLogController(dbPath);
 
         initializeUI();
     }
 
+    public FinesUI(String dbPath) {
+        this(null, dbPath);
+    }
+
     // Backwards-compatible constructor
     public FinesUI() {
-        this("./SLMS-DB.accdb");
+        this(null, "./SLMS-DB.accdb");
     }
 
     private void initializeUI() {
@@ -117,6 +126,9 @@ public class FinesUI extends JFrame {
 
         if (fineController.markFineAsPaid(selectedFineId)) {
             loadFines();
+            if (loggedInUser != null) {
+                auditLogController.logAction(loggedInUser.getUserId(), "FINE_PAID", "FINE:" + selectedFineId);
+            }
         } else {
             showError("Failed to mark fine as paid");
         }
@@ -138,6 +150,9 @@ public class FinesUI extends JFrame {
         if (confirm == JOptionPane.YES_OPTION) {
             fineController.waiveFine(selectedFineId);
             loadFines();
+            if (loggedInUser != null) {
+                auditLogController.logAction(loggedInUser.getUserId(), "FINE_WAIVED", "FINE:" + selectedFineId);
+            }
         }
     }
 

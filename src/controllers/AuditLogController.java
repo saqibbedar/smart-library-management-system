@@ -1,10 +1,10 @@
 package controllers;
 
-import models.AuditLog;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import models.AuditLog;
 
 public class AuditLogController {
 
@@ -19,20 +19,32 @@ public class AuditLogController {
     // INSERT A LOG ENTRY
     // =========================================================================
     public boolean logAction(int userId, String action, String targetType) {
-
-        String sql = "INSERT INTO AuditLog (userId, action, targetType, logTime) VALUES (?, ?, ?, ?)";
+        String idSql = "SELECT MAX(logId) AS maxId FROM AuditLog";
+        String insertSql = "INSERT INTO AuditLog (logId, userId, action, targetType, logTime) VALUES (?, ?, ?, ?, ?)";
 
         try (Connection conn = DriverManager.getConnection(dbUrl);
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement idStmt = conn.prepareStatement(idSql);
+             ResultSet rs = idStmt.executeQuery()) {
 
-            java.sql.Timestamp now = new java.sql.Timestamp(new Date().getTime());
+            int nextId = 1;
+            if (rs.next()) {
+                int maxId = rs.getInt("maxId");
+                if (!rs.wasNull()) {
+                    nextId = maxId + 1;
+                }
+            }
 
-            ps.setInt(1, userId);
-            ps.setString(2, action);
-            ps.setString(3, targetType);
-            ps.setTimestamp(4, now);
+            try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+                java.sql.Timestamp now = new java.sql.Timestamp(new Date().getTime());
 
-            return ps.executeUpdate() == 1;
+                ps.setInt(1, nextId);
+                ps.setInt(2, userId);
+                ps.setString(3, action);
+                ps.setString(4, targetType);
+                ps.setTimestamp(5, now);
+
+                return ps.executeUpdate() == 1;
+            }
 
         } catch (SQLException e) {
             System.out.println("Error logging action:");

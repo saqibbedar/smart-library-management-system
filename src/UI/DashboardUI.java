@@ -1,5 +1,6 @@
 package UI;
 
+import controllers.AuditLogController;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -103,11 +104,14 @@ public class DashboardUI extends JFrame {
         membersBtn.addActionListener(e -> new MembersUI().setVisible(true));
         booksBtn.addActionListener(e -> new BooksUI().setVisible(true));
         copiesBtn.addActionListener(e -> new BookCopiesUI().setVisible(true));
-        issueBtn.addActionListener(e -> new IssueReturnUI().setVisible(true));
-        finesBtn.addActionListener(e -> new FinesUI().setVisible(true));
-        logsBtn.addActionListener(e -> new AuditLogsUI().setVisible(true));
+        issueBtn.addActionListener(e -> new IssueReturnUI(loggedInUser, dbPath).setVisible(true));
+        finesBtn.addActionListener(e -> new FinesUI(loggedInUser, dbPath).setVisible(true));
+        logsBtn.addActionListener(e -> new AuditLogsUI(dbPath).setVisible(true));
 
         logoutBtn.addActionListener(e -> {
+            // Log logout before returning to login screen
+            new AuditLogController(dbPath).logAction(loggedInUser.getUserId(), "LOGOUT", "AUTH");
+
             dispose();
             new LoginUI(dbPath).setVisible(true); // Using the passed dbPath
         });

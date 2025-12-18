@@ -1,5 +1,5 @@
 #commands to establish connection to the database
 
 javac -cp ".;lib/*" DBConnection.java
-<!-- java -cp ".;lib/*" DBConnection -->
+javac Main.java
 java -cp ".;lib/*" Main

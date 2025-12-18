@@ -1,5 +1,6 @@
 package UI;
 
+import controllers.AuditLogController;
 import controllers.UserController;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -141,6 +142,9 @@ public class LoginUI extends JFrame {
         Users user = userController.login(username, password);
 
         if (user != null && user.isActive()) {
+            // Log successful login
+            new AuditLogController(dbPath).logAction(user.getUserId(), "LOGIN", "AUTH");
+
             dispose();
             new DashboardUI(user, dbPath).setVisible(true);
         } else {

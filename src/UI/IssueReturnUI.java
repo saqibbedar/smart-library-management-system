@@ -1,10 +1,9 @@
 package UI;
 
 import controllers.*;
-import models.*;
-
-import javax.swing.*;
 import java.awt.*;
+import javax.swing.*;
+import models.*;
 
 public class IssueReturnUI extends JFrame {
 
@@ -16,19 +15,27 @@ public class IssueReturnUI extends JFrame {
     private final BookCopyController copyController;
     private final IssueController issueController;
     private final FineController fineController;
+    private final AuditLogController auditLogController;
+    private final Users loggedInUser;
 
-    public IssueReturnUI(String dbPath) {
+    public IssueReturnUI(Users user, String dbPath) {
+        this.loggedInUser = user;
         memberController = new MemberController(dbPath);
         copyController = new BookCopyController(dbPath);
         issueController = new IssueController(dbPath);
         fineController = new FineController(dbPath);
+        auditLogController = new AuditLogController(dbPath);
 
         initializeUI();
     }
 
+    public IssueReturnUI(String dbPath) {
+        this(null, dbPath);
+    }
+
     // Backwards-compatible constructor
     public IssueReturnUI() {
-        this("./SLMS-DB.accdb");
+        this(null, "./SLMS-DB.accdb");
     }
 
     private void initializeUI() {
@@ -107,6 +114,9 @@ public class IssueReturnUI extends JFrame {
 
         if (success) {
             log("Book issued successfully");
+            if (loggedInUser != null) {
+                auditLogController.logAction(loggedInUser.getUserId(), "ISSUE", "COPY:" + copy.getCopyId());
+            }
         } else {
             log("Failed to issue book");
         }
@@ -115,18 +125,34 @@ public class IssueReturnUI extends JFrame {
     private void returnBook() {
         outputArea.setText("");
 
+        Member member = memberController.getMemberByStudentId(studentIdField.getText().trim());
+        if (member == null) {
+            log("Member not found");
+            return;
+        }
+
         BookCopy copy = copyController.getCopyByBarcode(barcodeField.getText().trim());
         if (copy == null) {
             log("Book copy not found");
             return;
         }
 
-        IssueTransaction issue = issueController.getIssueById(
-                getActiveIssueIdForCopy(copy.getCopyId())
-        );
+        // Must be currently issued
+        IssueTransaction activeIssue = issueController.getActiveIssueByCopyId(copy.getCopyId());
+        if (activeIssue == null) {
+            log("This book copy is not currently issued");
+            return;
+        }
 
+        // Must be issued to the same member attempting the return
+        if (activeIssue.getMemberId() != member.getMemberId()) {
+            log("Return denied: this copy is issued to another member (memberId=" + activeIssue.getMemberId() + ")");
+            return;
+        }
+
+        IssueTransaction issue = issueController.getIssueById(activeIssue.getIssueId());
         if (issue == null) {
-            log("No active issue found for this copy");
+            log("Active issue record could not be loaded");
             return;
         }
 
@@ -147,8 +173,15 @@ public class IssueReturnUI extends JFrame {
         if (fine != null && fine.getAmount() > 0) {
             fineController.createFine(fine);
             log("Book returned with fine: PKR " + fine.getAmount());
+            if (loggedInUser != null) {
+                auditLogController.logAction(loggedInUser.getUserId(), "FINE_CREATED", "ISSUE:" + issue.getIssueId());
+            }
         } else {
             log("Book returned successfully. No fine.");
+        }
+
+        if (loggedInUser != null) {
+            auditLogController.logAction(loggedInUser.getUserId(), "RETURN", "COPY:" + copy.getCopyId());
         }
     }
 

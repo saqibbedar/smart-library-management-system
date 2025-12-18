@@ -1,10 +1,9 @@
 package controllers;
 
-import models.Book;
-
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import models.Book;
 
 public class BookController {
 
@@ -18,21 +17,34 @@ public class BookController {
     // CREATE BOOK
     // ============================================================
     public boolean createBook(Book b) {
-        String sql = "INSERT INTO Books (title, author, ISBN, category, totalQuantity, availableQuantity, status) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String idSql = "SELECT MAX(bookId) AS maxId FROM Books";
+        String insertSql = "INSERT INTO Books (bookId, title, author, ISBN, category, totalQuantity, availableQuantity, status) " +
+                           "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DriverManager.getConnection(dbUrl);
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement idStmt = conn.prepareStatement(idSql);
+             ResultSet rs = idStmt.executeQuery()) {
 
-            ps.setString(1, b.getTitle());
-            ps.setString(2, b.getAuthor());
-            ps.setString(3, b.getISBN());
-            ps.setString(4, b.getCategory());
-            ps.setInt(5, b.getTotalQuantity());
-            ps.setInt(6, b.getAvailableQuantity());
-            ps.setString(7, b.getStatus());
+            int nextId = 1;
+            if (rs.next()) {
+                int maxId = rs.getInt("maxId");
+                if (!rs.wasNull()) {
+                    nextId = maxId + 1;
+                }
+            }
 
-            return ps.executeUpdate() == 1;
+            try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+                ps.setInt(1, nextId);
+                ps.setString(2, b.getTitle());
+                ps.setString(3, b.getAuthor());
+                ps.setString(4, b.getISBN());
+                ps.setString(5, b.getCategory());
+                ps.setInt(6, b.getTotalQuantity());
+                ps.setInt(7, b.getAvailableQuantity());
+                ps.setString(8, b.getStatus());
+
+                return ps.executeUpdate() == 1;
+            }
 
         } catch (SQLException e) {
             System.out.println("Error creating book:");

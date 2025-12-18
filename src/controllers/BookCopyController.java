@@ -1,10 +1,9 @@
 package controllers;
 
-import models.BookCopy;
-
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import models.BookCopy;
 
 public class BookCopyController {
 
@@ -19,19 +18,32 @@ public class BookCopyController {
     // CREATE A NEW BOOK COPY
     // =========================================================================
     public boolean createCopy(BookCopy copy) {
-        String sql = "INSERT INTO BookCopies (bookId, copyNumber, barcode, location, status) " +
-                     "VALUES (?, ?, ?, ?, ?)";
+        String idSql = "SELECT MAX(copyId) AS maxId FROM BookCopies";
+        String insertSql = "INSERT INTO BookCopies (copyId, bookId, copyNumber, barcode, location, status) " +
+                           "VALUES (?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DriverManager.getConnection(dbUrl);
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement idStmt = conn.prepareStatement(idSql);
+             ResultSet rs = idStmt.executeQuery()) {
 
-            ps.setInt(1, copy.getBookId());
-            ps.setInt(2, copy.getCopyNumber());
-            ps.setString(3, copy.getBarcode());
-            ps.setString(4, copy.getLocation());
-            ps.setString(5, copy.getStatus());
+            int nextId = 1;
+            if (rs.next()) {
+                int maxId = rs.getInt("maxId");
+                if (!rs.wasNull()) {
+                    nextId = maxId + 1;
+                }
+            }
 
-            return ps.executeUpdate() == 1;
+            try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+                ps.setInt(1, nextId);
+                ps.setInt(2, copy.getBookId());
+                ps.setInt(3, copy.getCopyNumber());
+                ps.setString(4, copy.getBarcode());
+                ps.setString(5, copy.getLocation());
+                ps.setString(6, copy.getStatus());
+
+                return ps.executeUpdate() == 1;
+            }
 
         } catch (SQLException e) {
             System.out.println("Error creating book copy:");
