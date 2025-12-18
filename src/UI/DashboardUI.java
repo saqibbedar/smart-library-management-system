@@ -12,13 +12,12 @@ public class DashboardUI extends JFrame {
     private final Users loggedInUser;
     private final String dbPath; // Added to fix the NoSuchMethodError
 
-    // Professional Color Palette
     private final Color SIDEBAR_COLOR = new Color(44, 62, 80);
     private final Color ACCENT_COLOR = new Color(52, 152, 219);
     private final Color BG_COLOR = new Color(245, 247, 250);
     private final Color HOVER_COLOR = new Color(41, 128, 185);
 
-    // Fixed Constructor to match LoginUI's call
+    // Constructor 
     public DashboardUI(Users user, String dbPath) {
         this.loggedInUser = user;
         this.dbPath = dbPath;
@@ -32,7 +31,7 @@ public class DashboardUI extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // ---------- LEFT SIDEBAR ----------
+        //LEFT SIDEBAR 
         JPanel sidebar = new JPanel();
         sidebar.setPreferredSize(new Dimension(260, 0));
         sidebar.setBackground(SIDEBAR_COLOR);
@@ -65,7 +64,7 @@ public class DashboardUI extends JFrame {
 
         add(sidebar, BorderLayout.WEST);
 
-        // ---------- MAIN CONTENT AREA ----------
+        //MAIN CONTENT AREA
         JPanel mainPanel = new JPanel(new BorderLayout());
         mainPanel.setBackground(BG_COLOR);
         mainPanel.setBorder(new EmptyBorder(40, 40, 40, 40));
@@ -100,7 +99,7 @@ public class DashboardUI extends JFrame {
         mainPanel.add(grid, BorderLayout.CENTER);
         add(mainPanel, BorderLayout.CENTER);
 
-        // ---------- BUTTON FUNCTIONALITY ----------
+        // BUTTON FUNCTIONALITY 
         membersBtn.addActionListener(e -> new MembersUI().setVisible(true));
         booksBtn.addActionListener(e -> new BooksUI().setVisible(true));
         copiesBtn.addActionListener(e -> new BookCopiesUI().setVisible(true));
