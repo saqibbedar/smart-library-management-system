@@ -16,7 +16,6 @@ public class DashboardUI extends JFrame {
     private final Color SIDEBAR_COLOR = new Color(44, 62, 80);
     private final Color ACCENT_COLOR = new Color(52, 152, 219);
     private final Color BG_COLOR = new Color(245, 247, 250);
-    private final Color HOVER_COLOR = new Color(41, 128, 185);
 
     // Constructor 
     public DashboardUI(Users user, String dbPath) {
@@ -76,7 +75,8 @@ public class DashboardUI extends JFrame {
         mainPanel.add(welcomeText, BorderLayout.NORTH);
 
         // Button Grid
-        JPanel grid = new JPanel(new GridLayout(3, 2, 25, 25));
+        boolean isAdmin = loggedInUser.getRole().equalsIgnoreCase("ADMIN");
+        JPanel grid = new JPanel(new GridLayout(isAdmin ? 4 : 3, 2, 25, 25));
         grid.setOpaque(false);
         grid.setBorder(new EmptyBorder(30, 0, 0, 0));
 
@@ -86,6 +86,7 @@ public class DashboardUI extends JFrame {
         JButton issueBtn = createGridButton("Issue / Return", "Circulation desk...");
         JButton finesBtn = createGridButton("Fines", "Financial records...");
         JButton logsBtn = createGridButton("Audit Logs", "System history...");
+        JButton librariansBtn = createGridButton("Manage Librarians", "Admin user accounts...");
 
         grid.add(membersBtn);
         grid.add(booksBtn);
@@ -93,8 +94,9 @@ public class DashboardUI extends JFrame {
         grid.add(issueBtn);
         grid.add(finesBtn);
 
-        if (loggedInUser.getRole().equalsIgnoreCase("ADMIN")) {
+        if (isAdmin) {
             grid.add(logsBtn);
+            grid.add(librariansBtn);
         }
 
         mainPanel.add(grid, BorderLayout.CENTER);
@@ -107,6 +109,7 @@ public class DashboardUI extends JFrame {
         issueBtn.addActionListener(e -> new IssueReturnUI(loggedInUser, dbPath).setVisible(true));
         finesBtn.addActionListener(e -> new FinesUI(loggedInUser, dbPath).setVisible(true));
         logsBtn.addActionListener(e -> new AuditLogsUI(dbPath).setVisible(true));
+        librariansBtn.addActionListener(e -> new LibrariansUI(loggedInUser, dbPath).setVisible(true));
 
         logoutBtn.addActionListener(e -> {
             // Log logout before returning to login screen
@@ -133,11 +136,13 @@ public class DashboardUI extends JFrame {
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         btn.addMouseListener(new MouseAdapter() {
+            @Override
             public void mouseEntered(MouseEvent e) {
                 btn.setBackground(new Color(250, 252, 255));
                 btn.setBorder(BorderFactory.createLineBorder(ACCENT_COLOR, 1));
             }
 
+            @Override
             public void mouseExited(MouseEvent e) {
                 btn.setBackground(Color.WHITE);
                 btn.setBorder(BorderFactory.createLineBorder(new Color(220, 225, 230), 1));

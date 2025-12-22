@@ -1,7 +1,12 @@
 package controllers;
 
-import models.Users;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+import models.Users;
 
 public class UserController {
 
@@ -145,5 +150,77 @@ public class UserController {
         }
 
         return null;
+    }
+
+    // -----------------------------
+    // LIST USERS BY ROLE
+    // -----------------------------
+    public List<Users> getUsersByRole(String role) {
+        List<Users> list = new ArrayList<>();
+        String sql = "SELECT * FROM Users WHERE role=? ORDER BY username ASC";
+
+        try (Connection conn = DriverManager.getConnection(dbUrl);
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, role);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                Users user = new Users();
+                user.setUserId(rs.getInt("userId"));
+                user.setUsername(rs.getString("username"));
+                user.setPasswordHash(rs.getString("passwordHash"));
+                user.setFullName(rs.getString("fullName"));
+                user.setRole(rs.getString("role"));
+                user.setShift(rs.getString("shift"));
+                user.setActive(rs.getBoolean("isActive"));
+                list.add(user);
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Error retrieving users by role:");
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
+    // -----------------------------
+    // RESET PASSWORD (STORES HASH)
+    // -----------------------------
+    public boolean resetPassword(int userId, String newPasswordPlain) {
+        String sql = "UPDATE Users SET passwordHash=? WHERE userId=?";
+
+        try (Connection conn = DriverManager.getConnection(dbUrl);
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, hashPassword(newPasswordPlain));
+            ps.setInt(2, userId);
+            return ps.executeUpdate() == 1;
+
+        } catch (SQLException e) {
+            System.out.println("Error resetting password:");
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // -----------------------------
+    // PASSWORD HASHING (SHA-256)
+    // -----------------------------
+    public static String hashPassword(String passwordPlain) {
+        if (passwordPlain == null) passwordPlain = "";
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest(passwordPlain.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder(digest.length * 2);
+            for (byte b : digest) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            // Should never happen on standard JVMs
+            throw new IllegalStateException("SHA-256 not available", e);
+        }
     }
 }
