@@ -174,6 +174,40 @@ public class BookController {
     }
 
     // ============================================================
+    // SEARCH BOOKS BY TITLE / AUTHOR / ISBN
+    // ============================================================
+    public List<Book> searchBooks(String query) {
+        List<Book> list = new ArrayList<>();
+
+        if (query == null) {
+            query = "";
+        }
+
+        String sql = "SELECT * FROM Books WHERE title LIKE ? OR author LIKE ? OR ISBN LIKE ? ORDER BY title ASC";
+
+        try (Connection conn = DriverManager.getConnection(dbUrl);
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            String like = "%" + query + "%";
+            ps.setString(1, like);
+            ps.setString(2, like);
+            ps.setString(3, like);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(buildBook(rs));
+                }
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Error searching books:");
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
+    // ============================================================
     // GET ALL BOOKS
     // ============================================================
     public List<Book> getAllBooks() {

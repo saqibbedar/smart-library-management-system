@@ -2,6 +2,8 @@ package UI;
 
 import controllers.*;
 import java.awt.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import javax.swing.*;
 import models.*;
 
@@ -12,6 +14,7 @@ public class IssueReturnUI extends JFrame {
     private JTextArea outputArea;
 
     private final MemberController memberController;
+    private final BookController bookController;
     private final BookCopyController copyController;
     private final IssueController issueController;
     private final FineController fineController;
@@ -21,6 +24,7 @@ public class IssueReturnUI extends JFrame {
     public IssueReturnUI(Users user, String dbPath) {
         this.loggedInUser = user;
         memberController = new MemberController(dbPath);
+        bookController = new BookController(dbPath);
         copyController = new BookCopyController(dbPath);
         issueController = new IssueController(dbPath);
         fineController = new FineController(dbPath);
@@ -114,6 +118,13 @@ public class IssueReturnUI extends JFrame {
 
         if (success) {
             log("Book issued successfully");
+
+            // --- Additional details (no change to existing issue logic) ---
+            int activeIssueId = getActiveIssueIdForCopy(copy.getCopyId());
+            IssueTransaction activeIssue = activeIssueId != -1 ? issueController.getIssueById(activeIssueId) : null;
+            Book book = bookController.getBookById(copy.getBookId());
+            appendIssueDetails(member, book, activeIssue != null ? activeIssue.getDueDate() : null);
+
             if (loggedInUser != null) {
                 auditLogController.logAction(loggedInUser.getUserId(), "ISSUE", "COPY:" + copy.getCopyId());
             }
@@ -180,6 +191,17 @@ public class IssueReturnUI extends JFrame {
             log("Book returned successfully. No fine.");
         }
 
+        // --- Additional details (no change to existing return logic) ---
+        IssueTransaction returnedIssue = issueController.getIssueById(issue.getIssueId());
+        Book book = bookController.getBookById(copy.getBookId());
+        appendReturnDetails(
+                member,
+                book,
+                returnedIssue != null ? returnedIssue.getDueDate() : issue.getDueDate(),
+                returnedIssue != null ? returnedIssue.getReturnDate() : null,
+                (fine != null ? fine.getAmount() : 0.0)
+        );
+
         if (loggedInUser != null) {
             auditLogController.logAction(loggedInUser.getUserId(), "RETURN", "COPY:" + copy.getCopyId());
         }
@@ -195,5 +217,47 @@ public class IssueReturnUI extends JFrame {
 
     private void log(String msg) {
         outputArea.append(msg + "\n");
+    }
+
+    private void appendIssueDetails(Member member, Book book, Date dueDate) {
+        log("----------------------------------------");
+        log("Issue Details");
+        log("Member Name     : " + formatFullName(member));
+        log("Department      : " + safe(member != null ? member.getDepartment() : null));
+        log("Student/Reg ID  : " + safe(member != null ? member.getStudentId() : null));
+        log("Book Title      : " + safe(book != null ? book.getTitle() : null));
+        log("Due Date        : " + formatDate(dueDate));
+        log("----------------------------------------");
+    }
+
+    private void appendReturnDetails(Member member, Book book, Date dueDate, Date returnDate, double fineAmount) {
+        log("----------------------------------------");
+        log("Return Details");
+        log("Member Name     : " + formatFullName(member));
+        log("Department      : " + safe(member != null ? member.getDepartment() : null));
+        log("Student/Reg ID  : " + safe(member != null ? member.getStudentId() : null));
+        log("Book Title      : " + safe(book != null ? book.getTitle() : null));
+        log("Due Date        : " + formatDate(dueDate));
+        log("Return Date     : " + formatDate(returnDate));
+        if (fineAmount > 0) {
+            log("Fine Amount     : PKR " + fineAmount);
+        }
+        log("----------------------------------------");
+    }
+
+    private String formatFullName(Member member) {
+        String first = member != null ? member.getFirstName() : null;
+        String last = member != null ? member.getLastName() : null;
+        String full = (safe(first) + " " + safe(last)).trim();
+        return full.isEmpty() ? "N/A" : full;
+    }
+
+    private String formatDate(Date date) {
+        if (date == null) return "N/A";
+        return new SimpleDateFormat("yyyy-MM-dd").format(date);
+    }
+
+    private String safe(String s) {
+        return (s == null || s.trim().isEmpty()) ? "N/A" : s.trim();
     }
 }

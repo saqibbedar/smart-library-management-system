@@ -18,6 +18,8 @@ public class BooksUI extends JFrame {
     private JTextField availableQtyField;
     private JTextField statusField;
 
+    private JTextField searchField;
+
     private JTable table;
     private DefaultTableModel tableModel;
 
@@ -76,10 +78,20 @@ public class BooksUI extends JFrame {
         JButton deleteBtn = new JButton("Delete");
         JButton clearBtn = new JButton("Clear");
 
+        JLabel searchLabel = new JLabel("Search");
+        searchField = new JTextField(18);
+        JButton searchBtn = new JButton("Search");
+        JButton showAllBtn = new JButton("Show All");
+
         buttonPanel.add(addBtn);
         buttonPanel.add(updateBtn);
         buttonPanel.add(deleteBtn);
         buttonPanel.add(clearBtn);
+
+        buttonPanel.add(searchLabel);
+        buttonPanel.add(searchField);
+        buttonPanel.add(searchBtn);
+        buttonPanel.add(showAllBtn);
 
         // ================= TABLE =================
         tableModel = new DefaultTableModel(
@@ -105,6 +117,14 @@ public class BooksUI extends JFrame {
         deleteBtn.addActionListener(e -> deleteBook());
         clearBtn.addActionListener(e -> clearForm());
 
+        searchBtn.addActionListener(e -> searchBooks());
+        showAllBtn.addActionListener(e -> {
+            searchField.setText("");
+            selectedBookId = -1;
+            table.clearSelection();
+            loadBooks();
+        });
+
         table.getSelectionModel().addListSelectionListener(e -> fillFormFromTable());
     }
 
@@ -114,6 +134,35 @@ public class BooksUI extends JFrame {
         tableModel.setRowCount(0);
         List<Book> books = bookController.getAllBooks();
 
+        for (Book b : books) {
+            tableModel.addRow(new Object[]{
+                    b.getBookId(),
+                    b.getTitle(),
+                    b.getAuthor(),
+                    b.getISBN(),
+                    b.getCategory(),
+                    b.getTotalQuantity(),
+                    b.getAvailableQuantity(),
+                    b.getStatus()
+            });
+        }
+    }
+
+    private void searchBooks() {
+        String query = searchField.getText().trim();
+
+        if (query.isEmpty()) {
+            selectedBookId = -1;
+            table.clearSelection();
+            loadBooks();
+            return;
+        }
+
+        tableModel.setRowCount(0);
+        selectedBookId = -1;
+        table.clearSelection();
+
+        List<Book> books = bookController.searchBooks(query);
         for (Book b : books) {
             tableModel.addRow(new Object[]{
                     b.getBookId(),
