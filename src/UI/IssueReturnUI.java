@@ -5,6 +5,9 @@ import java.awt.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
+import javax.swing.border.MatteBorder;
 import models.*;
 
 public class IssueReturnUI extends JFrame {
@@ -20,6 +23,12 @@ public class IssueReturnUI extends JFrame {
     private final FineController fineController;
     private final AuditLogController auditLogController;
     private final Users loggedInUser;
+
+    // Corporate Palette (from temp UI theme)
+    private final Color SIDEBAR_COLOR = new Color(245, 246, 250);
+    private final Color ACCENT_COLOR = new Color(41, 128, 185);
+    private final Color TEXT_COLOR = new Color(44, 62, 80);
+    private final Color BORDER_COLOR = new Color(210, 218, 226);
 
     public IssueReturnUI(Users user, String dbPath) {
         this.loggedInUser = user;
@@ -43,44 +52,105 @@ public class IssueReturnUI extends JFrame {
     }
 
     private void initializeUI() {
-        setTitle("Issue / Return Books");
-        setSize(500, 350);
+        setTitle("SLMS | Circulation Desk");
+        setSize(850, 500);
         setLocationRelativeTo(null);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
-        // ================= INPUT PANEL =================
-        JPanel inputPanel = new JPanel(new GridLayout(2, 2, 5, 5));
-        inputPanel.setBorder(BorderFactory.createTitledBorder("Details"));
+        JPanel mainPanel = new JPanel(new BorderLayout(0, 0));
+        mainPanel.setBackground(Color.WHITE);
 
-        studentIdField = new JTextField();
-        barcodeField = new JTextField();
+        // ================= LEFT: TRANSACTION FORM =================
+        JPanel leftPanel = new JPanel(new GridBagLayout());
+        leftPanel.setPreferredSize(new Dimension(380, 500));
+        leftPanel.setBackground(SIDEBAR_COLOR);
+        leftPanel.setBorder(new MatteBorder(0, 0, 0, 1, BORDER_COLOR));
 
-        inputPanel.add(new JLabel("Student ID"));
-        inputPanel.add(studentIdField);
-        inputPanel.add(new JLabel("Book Copy Barcode"));
-        inputPanel.add(barcodeField);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 25, 8, 25);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        // ================= BUTTONS =================
-        JPanel buttonPanel = new JPanel();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        JLabel title = new JLabel("Transaction Entry");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        title.setForeground(TEXT_COLOR);
+        leftPanel.add(title, gbc);
 
-        JButton issueBtn = new JButton("Issue Book");
-        JButton returnBtn = new JButton("Return Book");
+        studentIdField = createStyledTextField();
+        barcodeField = createStyledTextField();
 
-        buttonPanel.add(issueBtn);
-        buttonPanel.add(returnBtn);
+        gbc.gridy = 1;
+        leftPanel.add(new JLabel("Member Student ID"), gbc);
+        gbc.gridy = 2;
+        leftPanel.add(studentIdField, gbc);
+        gbc.gridy = 3;
+        leftPanel.add(new JLabel("Book Copy Barcode"), gbc);
+        gbc.gridy = 4;
+        leftPanel.add(barcodeField, gbc);
 
-        // ================= OUTPUT =================
-        outputArea = new JTextArea(6, 40);
+        JPanel btnPanel = new JPanel(new GridLayout(1, 2, 10, 0));
+        btnPanel.setOpaque(false);
+
+        JButton issueBtn = createPrimaryButton("Issue Book", new Color(39, 174, 96));
+        JButton returnBtn = createPrimaryButton("Return Book", ACCENT_COLOR);
+        btnPanel.add(issueBtn);
+        btnPanel.add(returnBtn);
+
+        gbc.gridy = 5;
+        gbc.insets = new Insets(30, 25, 10, 25);
+        leftPanel.add(btnPanel, gbc);
+
+        // ================= RIGHT: LOG AREA =================
+        JPanel rightPanel = new JPanel(new BorderLayout());
+        rightPanel.setBackground(Color.WHITE);
+        rightPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+
+        JLabel logHeader = new JLabel("System Logs & Details");
+        logHeader.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        logHeader.setBorder(new EmptyBorder(0, 0, 10, 0));
+
+        outputArea = new JTextArea();
+        outputArea.setFont(new Font("Consolas", Font.PLAIN, 12));
         outputArea.setEditable(false);
-        JScrollPane scrollPane = new JScrollPane(outputArea);
+        outputArea.setBackground(new Color(252, 252, 252));
 
-        // ================= LAYOUT =================
-        add(inputPanel, BorderLayout.NORTH);
-        add(buttonPanel, BorderLayout.CENTER);
-        add(scrollPane, BorderLayout.SOUTH);
+        JScrollPane scrollPane = new JScrollPane(outputArea);
+        scrollPane.setBorder(new LineBorder(BORDER_COLOR));
+
+        rightPanel.add(logHeader, BorderLayout.NORTH);
+        rightPanel.add(scrollPane, BorderLayout.CENTER);
+
+        mainPanel.add(leftPanel, BorderLayout.WEST);
+        mainPanel.add(rightPanel, BorderLayout.CENTER);
+        add(mainPanel);
 
         // ================= EVENTS =================
         issueBtn.addActionListener(e -> issueBook());
         returnBtn.addActionListener(e -> returnBook());
+    }
+
+    // ================= UI HELPERS (STYLE ONLY) =================
+    private JTextField createStyledTextField() {
+        JTextField field = new JTextField();
+        field.setPreferredSize(new Dimension(280, 35));
+        field.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        field.setBorder(BorderFactory.createCompoundBorder(
+                new LineBorder(BORDER_COLOR, 1),
+                new EmptyBorder(5, 10, 5, 10)
+        ));
+        return field;
+    }
+
+    private JButton createPrimaryButton(String text, Color bg) {
+        JButton btn = new JButton(text);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btn.setBackground(bg);
+        btn.setForeground(Color.WHITE);
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setBorder(new EmptyBorder(10, 0, 10, 0));
+        return btn;
     }
 
     // ================= LOGIC =================
